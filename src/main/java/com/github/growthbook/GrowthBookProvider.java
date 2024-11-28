@@ -23,13 +23,7 @@ public class GrowthBookProvider implements FeatureProvider {
 
     @Override
     public Metadata getMetadata() {
-        return () -> name; //Lambdas compile with 1.8? IDTS!
-        /*return new Metadata() {
-            @Override
-            public String getName() {
-                return name;
-            }
-        };*/
+        return () -> name;
     }
 
     public GrowthBookProvider() {
@@ -107,7 +101,7 @@ public class GrowthBookProvider implements FeatureProvider {
         }
 
         String url = attributes.getOrDefault("url", new Value("")).asString();
-        if (!url.isBlank()) {
+        if (!url.isEmpty()) {
             builder.url(url);
         }
 

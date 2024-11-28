@@ -35,17 +35,9 @@ public class GrowthBookExample {
         String greeting = client.getStringValue("welcome-message", "Hello", context);
         int maxAttempts = client.getIntegerValue("max-attempts", 3, context);
 
-        // Example usage
-        if (showNewFeature) {
-            System.out.println(greeting);
-            System.out.println("You have " + maxAttempts + " attempts remaining.");
-        }
-
-        // Evaluate object feature
-        /*Value config = client.getObjectValue("feature-config", new Structure(), context);
-        if (config.isStructure()) {
-            System.out.println("Config: " + config.asStructure().asMap());
-        }*/
+        System.out.println("showNewFeature: " + showNewFeature);
+        System.out.println("greeting: " + greeting);
+        System.out.println("You have " + maxAttempts + " attempts remaining.");
 
         // Clean up
         provider.shutdown();
