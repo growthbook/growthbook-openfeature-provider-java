@@ -59,12 +59,35 @@ The provider is thread-safe and can be used in multi-threaded environments.
 Uses the following dependencies:
 
 ```yaml
-        dev.openfeature:sdk:1.12.2
-    
-        io.growthbook:growthbook-sdk-java:1.1.0
+dev.openfeature:sdk:1.12.2
+
+io.growthbook:growthbook-sdk-java:1.1.0
 ```
 
 ## Example Usage
+
+```java
+
+Options options = Options.builder()
+    .apiHost("https://cdn.growthbook.io")
+    .clientKey("YOUR_CLIENT_KEY")
+    .build();
+
+// Create and initialize the provider
+GrowthBookProvider provider = new GrowthBookProvider(options);
+
+// Set the provider in OpenFeature
+OpenFeatureAPI.getInstance().setProvider(provider);
+
+// Create a client
+Client client = OpenFeatureAPI.getInstance().getClient();
+
+// Evaluate different types of features
+boolean showNewFeature = client.getBooleanValue("new-feature-flag", false, new ImmutableContext("user-123", attributes));
+
+// Clean up
+provider.shutdown();
+```
 
 See `GrowthBookExample.java` for a complete example of how to use the provider.
 
