@@ -2,15 +2,6 @@
 
 This is an OpenFeature provider implementation for GrowthBook's Java SDK. It allows you to use GrowthBook as a feature flag provider with the OpenFeature SDK.
 
-## Dependencies
-Uses the following dependencies:
-
-```yaml
-        dev.openfeature:sdk:1.12.2
-    
-        io.growthbook:growthbook-sdk-java:1.1.0
-```
-
 ## Quick Start
 
 ```java
@@ -62,6 +53,16 @@ The provider is thread-safe and can be used in multi-threaded environments.
 3. Include relevant user attributes in the context
 4. Handle potential exceptions during evaluation
 5. Clean up resources using the shutdown method
+
+
+## Dependencies
+Uses the following dependencies:
+
+```yaml
+        dev.openfeature:sdk:1.12.2
+    
+        io.growthbook:growthbook-sdk-java:1.1.0
+```
 
 ## Example Usage
 
