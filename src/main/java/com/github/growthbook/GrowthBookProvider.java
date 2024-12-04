@@ -4,7 +4,7 @@ import com.google.gson.*;
 import dev.openfeature.sdk.*;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import growthbook.sdk.java.FeatureResult;
-import growthbook.sdk.java.multiusermode.GrowthBookMultiUser;
+import growthbook.sdk.java.multiusermode.GrowthBookClient;
 import growthbook.sdk.java.multiusermode.configurations.Options;
 import growthbook.sdk.java.multiusermode.configurations.UserContext;
 
@@ -19,7 +19,7 @@ public class GrowthBookProvider implements FeatureProvider {
 
     private static final Logger LOG = Logger.getLogger(GrowthBookProvider.class.getName());
     private final String name = "GrowthBook.OpenFeature.Provider.Java";
-    private final GrowthBookMultiUser growthBookMultiUser;
+    private final GrowthBookClient growthBookClient;
 
     @Override
     public Metadata getMetadata() {
@@ -27,11 +27,11 @@ public class GrowthBookProvider implements FeatureProvider {
     }
 
     public GrowthBookProvider() {
-        this(Options.builder().build());
+        this.growthBookClient = GrowthBookClientFactory.instance();
     }
 
     public GrowthBookProvider(Options options) {
-        this.growthBookMultiUser = new GrowthBookMultiUser(options);
+        this.growthBookClient = GrowthBookClientFactory.instance(options);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class GrowthBookProvider implements FeatureProvider {
         FeatureProvider.super.initialize(evaluationContext);
         // Client has to be using in the synchronized mode!
         try {
-            boolean isReady = this.growthBookMultiUser.initialize();
+            boolean isReady = this.growthBookClient.initialize();
             if (!isReady) {
                 String errorMsg = "Failed to initialize GrowthBook instance.";
                 LOG.severe(errorMsg);
@@ -120,7 +120,7 @@ public class GrowthBookProvider implements FeatureProvider {
                         .build();
             }
 
-            FeatureResult<T> result = growthBookMultiUser.evalFeature(key, type, convertContext(context));
+            FeatureResult<T> result = growthBookClient.evalFeature(key, type, convertContext(context));
 
             if (result == null) {
                 return ProviderEvaluation.<T>builder()
@@ -179,7 +179,7 @@ public class GrowthBookProvider implements FeatureProvider {
     @Override
     public ProviderEvaluation<Value> getObjectEvaluation(String key, Value defaultValue, EvaluationContext ctx) {
         try {
-            FeatureResult<Object> result = growthBookMultiUser.evalFeature(key, Object.class, convertContext(ctx));
+            FeatureResult<Object> result = growthBookClient.evalFeature(key, Object.class, convertContext(ctx));
 
             if (result == null) {
                 return ProviderEvaluation.<Value>builder()
