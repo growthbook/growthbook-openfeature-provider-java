@@ -4,19 +4,21 @@ import dev.openfeature.sdk.*;
 import dev.openfeature.sdk.exceptions.ProviderNotReadyError;
 import growthbook.sdk.java.FeatureResult;
 import growthbook.sdk.java.FeatureResultSource;
-import growthbook.sdk.java.multiusermode.GrowthBookMultiUser;
+import growthbook.sdk.java.multiusermode.GrowthBookClient;
 import growthbook.sdk.java.multiusermode.configurations.Options;
 import growthbook.sdk.java.multiusermode.configurations.UserContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static dev.openfeature.sdk.ErrorCode.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,41 +28,54 @@ import static org.mockito.Mockito.*;
 public class GrowthBookProviderTest {
 
     @Mock
-    private GrowthBookMultiUser mockGrowthBook;
+    private GrowthBookClient mockGrowthBookClient;
     private GrowthBookProvider provider;
     private EvaluationContext context;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        Options options = Options.builder()
-                .apiHost("https://cdn.growthbook.io")
-                .clientKey("test-key")
-                .build();
-        provider = new GrowthBookProvider(options);
+        try (MockedStatic<GrowthBookClientFactory> mockedClientFactory = mockStatic(GrowthBookClientFactory.class)){
+            mockedClientFactory.when(() -> GrowthBookClientFactory.instance(any()))
+                    .thenReturn(mockGrowthBookClient);
+            mockedClientFactory.when(GrowthBookClientFactory::instance).thenReturn(mockGrowthBookClient);
 
-        // Create an immutable context for testing
-        Map<String, Value> attributes = new HashMap<>();
-        attributes.put("country", new Value("US"));
-        attributes.put("version", new Value(2));
-        context = new ImmutableContext("user-123", attributes);
+            Options options = Options.builder()
+                    .apiHost("https://cdn.growthbook.io")
+                    .clientKey("test-key")
+                    .build();
+            provider = new GrowthBookProvider(options);
+
+            // Create an immutable context for testing
+            Map<String, Value> attributes = new HashMap<>();
+            attributes.put("country", new Value("US"));
+            attributes.put("version", new Value(2));
+            context = new ImmutableContext("user-123", attributes);
+        }
     }
 
     @Test
-    void initialize_shouldThrowProviderNotReadyError_whenInitializationFails() throws Exception {
-        when(mockGrowthBook.initialize()).thenReturn(false);
-
-        assertThrows(ProviderNotReadyError.class, () -> provider.initialize(context));
+    void initialize_shouldThrowProviderNotReadyError_whenInitializationFails() {
+        when(mockGrowthBookClient.initialize()).thenReturn(false);
+        ProviderNotReadyError err = assertThrows(ProviderNotReadyError.class, () -> provider.initialize(context));
+        assertEquals("Error initializing GrowthBook provider", err.getMessage());
     }
+
     @Test
-    void evaluateBoolean_shouldHandleBasicFlag() throws Exception {
+    void initialize_success() throws Exception {
+        when(mockGrowthBookClient.initialize()).thenReturn(true);
+        provider.initialize(context);
+    }
+
+    @Test
+    void evaluateBoolean_shouldHandleBasicFlag() {
         String key = "test-flag";
         FeatureResult<Boolean> result = FeatureResult.<Boolean>builder()
                 .value(true)
                 .ruleId("rule-1")
                 .build();
 
-        when(mockGrowthBook.evalFeature(eq(key), eq(Boolean.class), any(UserContext.class)))
+        when(mockGrowthBookClient.evalFeature(eq(key), eq(Boolean.class), any(UserContext.class)))
                 .thenReturn(result);
 
         ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation(key, false, context);
@@ -68,6 +83,70 @@ public class GrowthBookProviderTest {
         assertTrue(evaluation.getValue());
         assertEquals("rule-1", evaluation.getVariant());
         assertEquals("TARGETING_MATCH", evaluation.getReason());
+    }
+
+    @Test
+    void evaluateBoolean_shouldReturnInvalidContext_whenKeyIsNull() {
+        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation(null, false, context);
+        assertFalse(evaluation.getValue());
+        assertEquals("INVALID_KEY", evaluation.getReason());
+        assertEquals(INVALID_CONTEXT, evaluation.getErrorCode());
+    }
+
+    @Test
+    void evaluateBoolean_shouldReturnInvalidContext_whenKeyIsEmpty() {
+        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation("", false, context);
+        assertFalse(evaluation.getValue());
+        assertEquals("INVALID_KEY", evaluation.getReason());
+        assertEquals(INVALID_CONTEXT, evaluation.getErrorCode());
+    }
+
+    @Test
+    void evaluateBoolean_shouldReturnNotFound_whenFlagNotFound() {
+        String key = "test-flag";
+
+        when(mockGrowthBookClient.evalFeature(eq(key), eq(Boolean.class), any(UserContext.class)))
+                .thenReturn(null);
+
+        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation(key, false, context);
+
+        assertFalse(evaluation.getValue());
+        assertEquals("NOT_FOUND", evaluation.getReason());
+        assertEquals(FLAG_NOT_FOUND, evaluation.getErrorCode());
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Test
+    void evaluateBoolean_shouldReturnTypeMismatch_whenResultTypeDoesNotMatch() {
+        String key = "test-flag";
+        FeatureResult result = FeatureResult.builder()
+                .value("true")
+                .ruleId("rule-1")
+                .build();
+
+        when(mockGrowthBookClient.evalFeature(eq(key), any(), any(UserContext.class)))
+                .thenReturn(result);
+
+        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation(key, false, context);
+
+        assertFalse(evaluation.getValue());
+        assertEquals("TYPE_MISMATCH", evaluation.getReason());
+        assertEquals(TYPE_MISMATCH, evaluation.getErrorCode());
+    }
+
+    @Test
+    void evaluateBoolean_shouldReturnGeneralError_whenException() {
+        String key = "test-flag";
+
+        when(mockGrowthBookClient.evalFeature(eq(key), any(), any(UserContext.class)))
+                .thenThrow(new RuntimeException("General Exception"));
+
+        ProviderEvaluation<Boolean> evaluation = provider.getBooleanEvaluation(key, false, context);
+
+        assertFalse(evaluation.getValue());
+        assertEquals("ERROR", evaluation.getReason());
+        assertEquals(GENERAL, evaluation.getErrorCode());
+        assertEquals("General Exception", evaluation.getErrorMessage());
     }
 
     @Test
@@ -88,7 +167,7 @@ public class GrowthBookProviderTest {
                 .ruleId("exp-1")
                 .build();
 
-        when(mockGrowthBook.evalFeature(eq(key), eq(String.class), any(UserContext.class)))
+        when(mockGrowthBookClient.evalFeature(eq(key), eq(String.class), any(UserContext.class)))
                 .thenReturn(result);
 
         ProviderEvaluation<String> evaluation =
@@ -98,20 +177,20 @@ public class GrowthBookProviderTest {
         assertEquals("exp-1", evaluation.getVariant());
     }
 
-   /* @Test
-    void evaluateObject_shouldHandleNullResult() throws Exception {
-        String key = "object-flag";
-        when(mockGrowthBook.evalFeature(eq(key), eq(Object.class), any(UserContext.class)))
-                .thenReturn(null);
-
-        Structure defaultValue = new Structure();
-        ProviderEvaluation<Value> evaluation =
-                provider.getObjectEvaluation(key, defaultValue, context);
-
-        assertEquals(defaultValue, evaluation.getValue());
-        assertEquals("NOT_FOUND", evaluation.getReason());
-        assertEquals(ErrorCode.FLAG_NOT_FOUND, evaluation.getErrorCode());
-    }*/
+//    @Test
+//    void evaluateObject_shouldHandleNullResult() throws Exception {
+//        String key = "object-flag";
+//        when(mockGrowthBookClient.evalFeature(eq(key), eq(Object.class), any(UserContext.class)))
+//                .thenReturn(null);
+//
+//        Structure defaultValue = new Structure();
+//        ProviderEvaluation<Value> evaluation =
+//                provider.getObjectEvaluation(key, defaultValue, context);
+//
+//        assertEquals(defaultValue, evaluation.getValue());
+//        assertEquals("NOT_FOUND", evaluation.getReason());
+//        assertEquals(ErrorCode.FLAG_NOT_FOUND, evaluation.getErrorCode());
+//    }
 
     @Test
     void evaluateFeature_shouldHandleInvalidKey() {
@@ -120,7 +199,7 @@ public class GrowthBookProviderTest {
 
         assertEquals("default", evaluation.getValue());
         assertEquals("INVALID_KEY", evaluation.getReason());
-        assertEquals(ErrorCode.INVALID_CONTEXT, evaluation.getErrorCode());
+        assertEquals(INVALID_CONTEXT, evaluation.getErrorCode());
     }
 
     @Test
@@ -131,7 +210,7 @@ public class GrowthBookProviderTest {
                 .source(FeatureResultSource.UNKNOWN_FEATURE)
                 .build();
 
-        when(mockGrowthBook.evalFeature(eq(key), eq(Integer.class), any(UserContext.class)))
+        when(mockGrowthBookClient.evalFeature(eq(key), eq(Integer.class), any(UserContext.class)))
                 .thenReturn(result);
 
         ProviderEvaluation<Integer> evaluation =
@@ -139,13 +218,13 @@ public class GrowthBookProviderTest {
 
         assertEquals(42, evaluation.getValue());
         assertEquals("TYPE_MISMATCH", evaluation.getReason());
-        assertEquals(ErrorCode.TYPE_MISMATCH, evaluation.getErrorCode());
+        assertEquals(TYPE_MISMATCH, evaluation.getErrorCode());
     }
 
     @Test
     void evaluateFeature_shouldHandleException() {
         String key = "error-flag";
-        when(mockGrowthBook.evalFeature(eq(key), any(), any()))
+        when(mockGrowthBookClient.evalFeature(eq(key), any(), any()))
                 .thenThrow(new RuntimeException("Test error"));
 
         ProviderEvaluation<Integer> evaluation =
