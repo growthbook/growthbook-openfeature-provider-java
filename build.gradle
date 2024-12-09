@@ -3,10 +3,12 @@ plugins {
     id 'maven-publish'
     id "checkstyle"
     id "jacoco"
+    id 'signing'
+    id 'net.researchgate.release' version '2.8.1'
 }
 
 group = 'com.github.growthbook'
-version = '0.1.0'
+version = '0.0.0-SNAPSHOT'
 
 java {
     withJavadocJar()
@@ -64,6 +66,48 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             from components.java
+
+            pom {
+                name.set('GrowthBook OpenFeature Provider Java')
+                description.set('An OpenFeature provider for GrowthBook in Java.')
+                url.set('https://github.com/growthbook/growthbook-openfeature-provider-java')
+
+                licenses {
+                    license {
+                        name.set('Apache License, Version 2.0')
+                        url.set('https://www.apache.org/licenses/LICENSE-2.0.html')
+                    }
+                }
+                developers {
+                    developer {
+                        id.set('GrowthBook Engineering')
+                        name.set('GrowthBook Engineering')
+                        email.set('engineering@growthbook.io')
+                    }
+                }
+                scm {
+                    connection.set('scm:git:git://github.com/growthbook/growthbook-openfeature-provider-java.git')
+                    developerConnection.set('scm:git:ssh://git@github.com:your-repo/growthbook-openfeature-provider-java.git')
+                    url.set('https://github.com/growthbook/growthbook-openfeature-provider-java')
+                }
+            }
         }
     }
 }
+
+signing {
+    sign publishing.publications.mavenJava
+}
+
+release {
+    failOnCommitNeeded = true
+    failOnPublishNeeded = true
+    failOnSnapshotDependencies = true
+    failOnUnversionedFiles = true
+    preTagCommitMessage = "[Gradle Release Plugin] - pre tag commit:"
+    tagCommitMessage = "[Gradle Release Plugin] - creating tag:"
+    newVersionCommitMessage = "[Gradle Release Plugin] - new version commit:"
+    releaseTypeParameter = "release.releaseType"
+}
+
+def isSnapshot = version.endsWith("-SNAPSHOT")
