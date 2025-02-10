@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Important for git history
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -30,21 +32,10 @@ jobs:
           ./gradlew release -Prelease.useAutomaticVersion=false -Prelease.releaseType=${{ github.event.inputs.release_type }}
           git push origin main --follow-tags
 
-      - name: Create GitHub Release with Auto-Generated Notes
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
           generate_release_notes: true
-
-      - name: Publish to Maven Central
-        run: |
-          ./gradlew publish
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          token: ${{ secrets.GITHUB_TOKEN }}
