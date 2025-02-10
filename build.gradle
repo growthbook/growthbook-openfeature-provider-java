@@ -8,7 +8,6 @@ plugins {
 }
 
 group = 'com.github.growthbook'
-version = '0.0.0-SNAPSHOT'
 
 java {
     withJavadocJar()
@@ -111,6 +110,9 @@ release {
     git {
         requireBranch = 'main'
     }
+    buildTasks = ['build']
+    versionPropertyFile = 'gradle.properties'
+    snapshotSuffix = '-SNAPSHOT'
 }
 
 def isSnapshot = version.endsWith("-SNAPSHOT")
