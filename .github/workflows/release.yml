@@ -29,7 +29,7 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          ./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseVersion=${{ github.event.inputs.release_type }} --no-daemon -Dorg.gradle.console=plain
+          ./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseType=${{ github.event.inputs.release_type }} --no-daemon -Dorg.gradle.console=plain
           git push origin main --follow-tags
 
       - name: Create GitHub Release
