@@ -113,6 +113,25 @@ release {
     buildTasks = ['build']
     versionPropertyFile = 'gradle.properties'
     snapshotSuffix = '-SNAPSHOT'
+
+    // Add version pattern for semantic versioning
+    /*versionPatterns = [
+        /[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?/: { String version, String _ ->
+            String numbers = version.replaceAll("-SNAPSHOT\$", "")
+            def (major, minor, patch) = numbers.tokenize('.')
+            String releaseType = project.findProperty('release.releaseType') ?: 'patch'
+
+            switch(releaseType) {
+                case 'major':
+                    return "${(major as int) + 1}.0.0"
+                case 'minor':
+                    return "${major}.${(minor as int) + 1}.0"
+                case 'patch':
+                default:
+                    return "${major}.${minor}.${(patch as int) + 1}"
+            }
+        }
+    ]*/
 }
 
 def isSnapshot = version.endsWith("-SNAPSHOT")
