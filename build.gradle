@@ -95,9 +95,16 @@ publishing {
     }
 }
 
-signing {
-    sign publishing.publications.mavenJava
-}
+//signing {
+//    // Only sign if we have the signing key properties
+//    required { gradle.taskGraph.hasTask("publish") }  // Don't require signing for JitPack builds
+//    sign publishing.publications.mavenJava
+//}
+//
+//// Optional: Configure signing only if signing properties are present
+//ext."signing.keyId" = project.findProperty("signing.keyId") ?: ""
+//ext."signing.password" = project.findProperty("signing.password") ?: ""
+//ext."signing.secretKeyRingFile" = project.findProperty("signing.secretKeyRingFile") ?: ""
 
 release {
     failOnCommitNeeded = true
