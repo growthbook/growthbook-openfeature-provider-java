@@ -31,7 +31,7 @@ Uses the following dependencies:
 ```yaml
 dev.openfeature:sdk:1.12.2
 
-io.growthbook:growthbook-sdk-java:1.1.0
+com.github.growthbook:growthbook-sdk-java:0.9.92
 ```
 
 ## Example Usage
