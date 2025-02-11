@@ -25,17 +25,20 @@ jobs:
           distribution: temurin
 
       - name: Bump version and tag
-        id: bump_version
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           ./gradlew release -Prelease.useAutomaticVersion=true -Prelease.releaseType=${{ github.event.inputs.release_type }} --no-daemon -Dorg.gradle.console=plain
           git push origin main --follow-tags
 
+      - name: Get version
+        id: get_version
+        run: echo "NEW_VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ steps.get_version.outputs.NEW_VERSION }}
+          name: Release v${{ steps.get_version.outputs.NEW_VERSION }}
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
