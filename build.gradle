@@ -10,9 +10,6 @@ plugins {
 group = 'com.github.growthbook'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
-    }
     withJavadocJar()
     withSourcesJar()
 }
@@ -24,6 +21,9 @@ repositories {
         dirs("/Users/mc/GrowthBook/workspace/growthbook-sdk-java/lib/build/libs")
     }
 }
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
@@ -106,7 +106,6 @@ release {
     git {
         requireBranch = 'main'
         pushToRemote = 'origin'
-        pushTags = 'origin'
         pushOptions = ['--no-tags']
         commitVersionFileOnly = true
     }
