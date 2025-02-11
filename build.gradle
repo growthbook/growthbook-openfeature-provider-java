@@ -10,6 +10,9 @@ plugins {
 group = 'com.github.growthbook'
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
     withJavadocJar()
     withSourcesJar()
 }
@@ -21,9 +24,6 @@ repositories {
         dirs("/Users/mc/GrowthBook/workspace/growthbook-sdk-java/lib/build/libs")
     }
 }
-
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
@@ -95,17 +95,6 @@ publishing {
     }
 }
 
-//signing {
-//    // Only sign if we have the signing key properties
-//    required { gradle.taskGraph.hasTask("publish") }  // Don't require signing for JitPack builds
-//    sign publishing.publications.mavenJava
-//}
-//
-//// Optional: Configure signing only if signing properties are present
-//ext."signing.keyId" = project.findProperty("signing.keyId") ?: ""
-//ext."signing.password" = project.findProperty("signing.password") ?: ""
-//ext."signing.secretKeyRingFile" = project.findProperty("signing.secretKeyRingFile") ?: ""
-
 release {
     failOnCommitNeeded = true
     failOnPublishNeeded = true
@@ -116,29 +105,14 @@ release {
     newVersionCommitMessage = "[Gradle Release Plugin] - new version commit:"
     git {
         requireBranch = 'main'
+        pushToRemote = 'origin'
+        pushTags = 'origin'
+        pushOptions = ['--no-tags']
+        commitVersionFileOnly = true
     }
     buildTasks = ['build']
     versionPropertyFile = 'gradle.properties'
     snapshotSuffix = '-SNAPSHOT'
-
-    // Add version pattern for semantic versioning
-    /*versionPatterns = [
-        /[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?/: { String version, String _ ->
-            String numbers = version.replaceAll("-SNAPSHOT\$", "")
-            def (major, minor, patch) = numbers.tokenize('.')
-            String releaseType = project.findProperty('release.releaseType') ?: 'patch'
-
-            switch(releaseType) {
-                case 'major':
-                    return "${(major as int) + 1}.0.0"
-                case 'minor':
-                    return "${major}.${(minor as int) + 1}.0"
-                case 'patch':
-                default:
-                    return "${major}.${minor}.${(patch as int) + 1}"
-            }
-        }
-    ]*/
 }
 
 def isSnapshot = version.endsWith("-SNAPSHOT")
